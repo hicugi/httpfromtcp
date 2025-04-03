@@ -1,34 +1,70 @@
 package main
 
-import "os"
-import "io"
-import "strings"
-import "fmt"
+import (
+	"os"
+	"log"
+	"io"
+	"strings"
+	"errors"
+	"fmt"
+)
+
+const filePath = "./messages.txt"
+
+func getLinesChannel(f io.ReadCloser) <-chan string {
+	lines := make(chan string)
+
+	go func() {
+		defer f.Close()
+		defer close(lines)
+
+		b8 := make([]byte, 8)
+		currentLine := ""
+
+		for {
+			n, err := f.Read(b8)
+
+			if err != nil {
+				if currentLine != "" {
+					lines <- currentLine
+				}
+
+				if errors.Is(err, io.EOF) {
+					break
+				}
+
+				fmt.Printf("error: %s\n", err.Error())
+				break
+			}
+
+			str := string(b8[:n])
+
+			parts := strings.Split(str, "\n")
+			lastIdx := len(parts)-1
+
+			for i := 0; i < lastIdx; i++ {
+				lines <- fmt.Sprintf("%s%s", currentLine, parts[i])
+				currentLine = ""
+			}
+
+			currentLine += parts[lastIdx]
+		}
+	}()
+
+	return lines
+}
 
 func main() {
-	file, _ := os.Open("./messages.txt")
+	file, err := os.Open(filePath)
 
-	b8 := make([]byte, 8)
-	line := ""
+	if err != nil {
+		log.Fatalf("Coun't open %s: %s\n", filePath, err)
+		return
+	}
 
-	for true {
-		n, err := file.Read(b8)
+	linesChan := getLinesChannel(file)
 
-		if err == io.EOF {
-			break
-		}
-
-		str := string(b8[:n])
-		idx := strings.Index(str, "\n")
-
-		if idx == -1 {
-			line += str
-			continue
-		}
-
-		line += str[:idx]
-		fmt.Printf("read: %s\n", line)
-
-		line = str[idx+1:]
+	for line := range linesChan {
+		fmt.Println("read:", line)
 	}
 }
