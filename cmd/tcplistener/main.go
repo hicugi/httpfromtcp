@@ -74,7 +74,7 @@ func main() {
 		linesChan := getLinesChannel(conn)
 
 		for line := range linesChan {
-			fmt.Println("read:", line)
+			fmt.Println(line)
 		}
 
 		// fmt.Println("- connect to", addr, "closed")
