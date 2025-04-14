@@ -20,7 +20,7 @@ func main() {
 
 	conn, err := net.DialUDP(CONNECTION_TYPE, nil, addr)
 	if err != nil {
-		log.Fatalf("Error on DialUPD %s address: %s\n", err)
+		log.Fatalf("Error on DialUPD %s address\n", err)
 		os.Exit(1)
 	}
 
