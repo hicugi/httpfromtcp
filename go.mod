@@ -1,4 +1,4 @@
-module MODULE_NAME
+module myhttpfromtcp
 
 go 1.24.1
 
