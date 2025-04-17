@@ -40,9 +40,22 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	}
 
 	value := strings.TrimSpace(string(parts[1]))
-	h[key] = string(value)
+	h.Set(key, value)
 
 	return idx + 2, false, nil
+}
+
+func (h Headers) Set(key, value string) {
+	if string(value[len(value) - 1]) == ";" {
+		value = value[:len(value)-1]
+	}
+
+	if _, ok := h[key]; ok {
+		h[key] = fmt.Sprintf("%s, %s", h[key], value)
+		return
+	}
+
+	h[key] = value
 }
 
 var tokenChars = []byte{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}

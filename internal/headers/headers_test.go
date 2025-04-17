@@ -49,6 +49,16 @@ func TestHeaders(t *testing.T) {
 	assert.Equal(t, 25, n)
 	assert.False(t, done)
 
+	// Test: Valid 3 in 1 headers
+	headers = map[string]string{"set-person": "lane-loves-go"}
+	data = []byte("Set-Person: prime-loves-zig;\r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	require.NotNil(t, headers)
+	assert.Equal(t, "lane-loves-go, prime-loves-zig", headers["set-person"])
+	assert.Equal(t, 30, n)
+	assert.False(t, done)
+
 	// Test: Valid with special key
 	headers = NewHeaders()
 	data = []byte("H$st: localhost:42069\r\n\r\n")
