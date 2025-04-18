@@ -55,7 +55,12 @@ func (h Headers) Set(key, value string) {
 		return
 	}
 
-	h[key] = value
+	h[key] = fmt.Sprintf("%s", value)
+}
+
+func (h Headers) Get(key string) (string, bool) {
+	val, ok := h[strings.ToLower(key)]
+	return val, ok
 }
 
 var tokenChars = []byte{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}

@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"errors"
+	"strconv"
 
 	"myhttpfromtcp/internal/headers"
 )
@@ -13,6 +14,8 @@ import (
 type Request struct {
 	RequestLine RequestLine
 	Headers     headers.Headers
+	Body        []byte
+	bodyLen     int
 
 	state       requestState
 }
@@ -28,6 +31,7 @@ const (
 	requestStateInitialized requestState = iota
 	requestStateDone
 	requestStateParsingHeaders
+	requestStateParsingBody
 )
 
 const CRLF = "\r\n"
@@ -39,7 +43,8 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 
 	req := &Request{
 		Headers: headers.NewHeaders(),
-		state: requestStateInitialized,
+		Body:    make([]byte, 0),
+		state:   requestStateInitialized,
 	}
 
 	for req.state != requestStateDone {
@@ -170,6 +175,18 @@ func (r *Request) parseSingle(data []byte) (int, error) {
 		}
 
 		if done {
+			r.state = requestStateParsingBody
+		}
+
+		return n, nil
+
+	case requestStateParsingBody:
+		n, done, err := r.parseBody(data)
+		if err != nil {
+			return 0, err
+		}
+
+		if done {
 			r.state = requestStateDone
 		}
 
@@ -181,4 +198,30 @@ func (r *Request) parseSingle(data []byte) (int, error) {
 	default:
 		return 0, fmt.Errorf("unknown state")
 	}
+}
+
+func (r *Request) parseBody(data []byte) (int, bool, error) {
+	size, ok := r.Headers.Get("Content-Length")
+
+	if !ok || size == "0" {
+		return len(data), true, nil
+	}
+
+	sizeI, err := strconv.Atoi(size)
+	if err != nil {
+		return 0, true, fmt.Errorf("malformed Content-Length: %s", err)
+	}
+
+	if len(data) > sizeI {
+		return 0, true, fmt.Errorf("Content-Length is too large: %v/%s", len(data), size)
+	}
+
+	r.Body = append(r.Body, data...)
+	r.bodyLen += len(data)
+
+	if r.bodyLen == sizeI {
+		return len(data), true, nil
+	}
+	
+	return len(data), false, nil
 }
