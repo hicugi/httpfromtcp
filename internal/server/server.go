@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"sync/atomic"
+	"myhttpfromtcp/internal/response"
 )
 
 const CONNECTION_TYPE = "tcp"
@@ -56,9 +57,10 @@ func (s *Server) listen() {
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
 
-	response := "HTTP/1.1 200 OK\r\n" +
-		"Content-Type: text/plain\r\n" +
-		"\r\n" +
-		"Hello World!\n"
-	conn.Write([]byte(response))
+	response.WriteStatusLine(conn, response.STATUS_CODE_OK)
+	headers := response.GetDefaultHeaders(0)
+
+	if err := response.WriteHeaders(conn, headers); err != nil {
+		fmt.Printf("error: %v\n", err)
+	}
 }
