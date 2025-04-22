@@ -59,6 +59,11 @@ func TestHeaders(t *testing.T) {
 	assert.Equal(t, 30, n)
 	assert.False(t, done)
 
+	// Test: Override headers
+	headers = map[string]string{"set-person": "lane-loves-go"}
+	headers.SetOverride("Set-Person", "prime-loves-zig")
+	assert.Equal(t, "prime-loves-zig", headers["set-person"])
+
 	// Test: Valid with special key
 	headers = NewHeaders()
 	data = []byte("H$st: localhost:42069\r\n\r\n")

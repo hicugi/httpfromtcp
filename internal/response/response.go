@@ -2,7 +2,6 @@ package response
 
 import (
 	"fmt"
-	"io"
 	"strconv"
 	"myhttpfromtcp/internal/headers"
 )
@@ -21,20 +20,21 @@ var statusCode = map[StatusCode]int{
 	STATUS_CODE_INTERNAL_ERROR: 500,
 }
 
-func WriteStatusLine(w io.Writer, code StatusCode) error {
+func GetStatusLine(code StatusCode) []byte {
+	desc := ""
+
 	switch code {
 	case STATUS_CODE_OK:
-		w.Write([]byte("HTTP/1.1 200 OK"))
+		desc = "OK"
 
 	case STATUS_CODE_BAD_REQUEST:
-		w.Write([]byte("HTTP/1.1 400 Bad Request"))
+		desc = "Bad Request"
 
 	case STATUS_CODE_INTERNAL_ERROR:
-		w.Write([]byte("HTTP/1.1 500 Internal Server Error"))
+		desc = "Internal Server Error"
 	}
 
-	w.Write([]byte(CRLF))
-	return nil
+	return []byte(fmt.Sprintf("HTTP/1.1 %d %s%s", statusCode[code], desc, CRLF))
 }
 
 func GetDefaultHeaders(contentLen int) headers.Headers {
@@ -45,18 +45,4 @@ func GetDefaultHeaders(contentLen int) headers.Headers {
 	res.Set("Content-Type", "text/plain")
 
 	return res
-}
-
-func WriteHeaders(w io.Writer, headers headers.Headers) error {
-	for key, val := range headers {
-		line := fmt.Sprintf("%s: %s%s", key, val, CRLF)
-		_, err := w.Write([]byte(line))
-
-		if err != nil {
-			return err
-		}
-	}
-
-	w.Write([]byte(CRLF))
-	return nil
 }

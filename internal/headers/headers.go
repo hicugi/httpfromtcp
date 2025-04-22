@@ -46,6 +46,8 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 }
 
 func (h Headers) Set(key, value string) {
+	key = strings.ToLower(key)
+
 	if string(value[len(value) - 1]) == ";" {
 		value = value[:len(value)-1]
 	}
@@ -53,6 +55,15 @@ func (h Headers) Set(key, value string) {
 	if _, ok := h[key]; ok {
 		h[key] = fmt.Sprintf("%s, %s", h[key], value)
 		return
+	}
+
+	h[key] = fmt.Sprintf("%s", value)
+}
+func (h Headers) SetOverride(key, value string) {
+	key = strings.ToLower(key)
+
+	if string(value[len(value) - 1]) == ";" {
+		value = value[:len(value)-1]
 	}
 
 	h[key] = fmt.Sprintf("%s", value)
