@@ -68,6 +68,10 @@ func (h Headers) SetOverride(key, value string) {
 
 	h[key] = fmt.Sprintf("%s", value)
 }
+func (h Headers) Remove(key string) {
+	key = strings.ToLower(key)
+	delete(h, key)
+}
 
 func (h Headers) Get(key string) (string, bool) {
 	val, ok := h[strings.ToLower(key)]
