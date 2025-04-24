@@ -37,6 +37,11 @@ func main() {
 func handler(w *response.Writer, req *request.Request) {
 	target := req.RequestLine.RequestTarget
 
+	if target == "/video" {
+		handlerVideo(w, req)
+		return
+	}
+
 	httpbinPrefix := "/httpbin/"
 	if strings.HasPrefix(target, httpbinPrefix) {
 		val := strings.TrimPrefix(target, httpbinPrefix)
@@ -56,6 +61,38 @@ func handler(w *response.Writer, req *request.Request) {
 	return
 }
 
+func handlerVideo(w *response.Writer, req *request.Request) {
+	w.WriteStatusLine(response.STATUS_CODE_OK)
+
+	h := response.GetDefaultHeaders(0)
+	h.SetOverride("Content-Type", "video/mp4")
+
+	data, err := os.ReadFile("assets/vim.mp4")
+	if err != nil {
+		fmt.Println("Error reading video file:", err)
+	}
+
+	h.Remove("Content-Length")
+	h.Set("Trailer", "X-Content-SHA256")
+	h.Set("Trailer", "X-Content-Length")
+	w.WriteHeaders(h)
+
+	size, err2 := w.WriteBody(data)
+	if err2 != nil {
+		fmt.Println("Error writing body:", err2)
+	}
+
+	trailers := headers.NewHeaders()
+	sha256 := fmt.Sprintf("%x", sha256.Sum256(data))
+	trailers.SetOverride("X-Content-SHA256", sha256)
+	trailers.Set("X-Content-Length", fmt.Sprintf("%d", size))
+
+	err = w.WriteTrailers(trailers)
+	if err != nil {
+		fmt.Println("Error writing trailers:", err)
+	}
+}
+
 func handlerHttpBin(w *response.Writer, req *request.Request, urlPath string) {
 	w.WriteStatusLine(response.STATUS_CODE_OK)
 
@@ -73,9 +110,9 @@ func handlerHttpBin(w *response.Writer, req *request.Request, urlPath string) {
 
 	h := response.GetDefaultHeaders(0)
 	h.SetOverride("Transfer-Encoding", "chunked")
+	h.Remove("Content-Length")
 	h.Set("Trailer", "X-Content-SHA256")
 	h.Set("Trailer", "X-Content-Length")
-	h.Remove("Content-Length")
 	w.WriteHeaders(h)
 
 	fullBody := make([]byte, 0)
