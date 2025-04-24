@@ -9,9 +9,11 @@ import (
 	"os/signal"
 	"syscall"
 	"net/http"
+	"crypto/sha256"
 	"myhttpfromtcp/internal/request"
 	"myhttpfromtcp/internal/response"
 	"myhttpfromtcp/internal/server"
+	"myhttpfromtcp/internal/headers"
 )
 
 const PORT = 42069
@@ -71,7 +73,12 @@ func handlerHttpBin(w *response.Writer, req *request.Request, urlPath string) {
 
 	h := response.GetDefaultHeaders(0)
 	h.SetOverride("Transfer-Encoding", "chunked")
+	h.Set("Trailer", "X-Content-SHA256")
+	h.Set("Trailer", "X-Content-Length")
 	h.Remove("Content-Length")
+	w.WriteHeaders(h)
+
+	fullBody := make([]byte, 0)
 
 	w.WriteHeaders(h)
 
@@ -88,6 +95,8 @@ func handlerHttpBin(w *response.Writer, req *request.Request, urlPath string) {
 				fmt.Println("Error writing chunked body:", err)
 				break
 			}
+
+			fullBody = append(fullBody, buffer[:n]...)
 		}
 
 		if err == io.EOF {
@@ -104,6 +113,18 @@ func handlerHttpBin(w *response.Writer, req *request.Request, urlPath string) {
 	if err != nil {
 		fmt.Println("Error writing chunked body done:", err)
 	}
+
+	trailers := headers.NewHeaders()
+	sha256 := fmt.Sprintf("%x", sha256.Sum256(fullBody))
+	trailers.SetOverride("X-Content-SHA256", sha256)
+	trailers.Set("X-Content-Length", fmt.Sprintf("%d", len(fullBody)))
+
+	err = w.WriteTrailers(trailers)
+	if err != nil {
+		fmt.Println("Error writing trailers:", err)
+	}
+
+	fmt.Println("Wrote trailers")
 }
 
 func handler400(w *response.Writer, _ *request.Request) {
